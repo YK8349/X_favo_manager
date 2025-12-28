@@ -205,12 +205,9 @@ def update_post_tags(db: Session, post_id: int, tags: List[str]):
         if tag_name_stripped:
             tag = get_tag_by_name(db, name=tag_name_stripped)
             if not tag:
-                # 存在しないタグは新しく作成
+                # 存在しないタグは新しく作成し、セッションに追加
                 tag = models.Tag(name=tag_name_stripped)
                 db.add(tag)
-                # コミットしてIDを確定させる
-                db.commit()
-                db.refresh(tag)
             new_tags.append(tag)
     
     # 投稿のタグを新しいリストに更新
