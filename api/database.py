@@ -12,7 +12,10 @@ if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
     connect_args["check_same_thread"] = False
 
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args=connect_args
+    SQLALCHEMY_DATABASE_URL, connect_args=connect_args,
+    # サーバーレス環境向けの追加設定
+    pool_pre_ping=True,      # 接続が生きているか確認してから使う
+    pool_recycle=300,        # 5分で接続をリサイクル
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
