@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { Post, Tag } from '../types';
 import { getPosts, getTags } from '../api';
 import TweetCard from '../components/TweetCard';
