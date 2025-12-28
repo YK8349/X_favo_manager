@@ -13,9 +13,8 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if project_root not in sys.path:
     sys.path.append(project_root)
 
-# Now, we can import from the backend package
-from backend.database import SessionLocal
-from backend.models import Post, Tag
+from api.database import SessionLocal
+from api.models import Post, Tag
 
 
 def get_post_by_url(db: Session, url: str):
@@ -95,22 +94,21 @@ def parse_and_import(file_path: str) -> dict:
     # --- データベースへの保存処理 ---
     db: Session = SessionLocal()
     try:
-        existing_post = get_post_by_url(db, url=post_data['url'])
-        if existing_post:
-            return {"status": "skipped", "url": url, "reason": "Post already exists"}
+        # すでに存在するかチェック
+        if get_post_by_url(db, url):
+             return {"status": "skipped", "url": url, "reason": "Post already exists"}
 
-        # 'author_name' と 'author_screen_name' がない場合はスキップ
-        if not post_data.get('author_name') or not post_data.get('author_screen_name'):
-             return {"status": "failed", "url": url, "error": "Author information could not be extracted."}
-
-        db_post = Post(**post_data, tags=[])
+        # tags=[] を明示的に渡す必要はありません（modelのdefaultで空になります）
+        db_post = Post(**post_data) 
         db.add(db_post)
-        db.commit()
+        db.commit() # ここでIDエラーが出ていたはずです
+        db.refresh(db_post) # 保存後の情報を取得
         return {"status": "added", "url": db_post.url}
 
     except Exception as e:
-        db.rollback()
-        return {"status": "failed", "url": post_data.get('url'), "error": f"Database error: {e}"}
+        db.rollback() # エラー時は必ずロールバック
+        print(f"Import Error: {e}") # ログに出力
+        return {"status": "failed", "url": url, "error": str(e)}
     finally:
         db.close()
 
