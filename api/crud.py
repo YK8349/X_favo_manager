@@ -132,14 +132,14 @@ def create_tag(db: Session, tag: schemas.TagCreate):
     return db_tag
 # --- Post CRUD ---
 
-def get_posts(db: Session, skip: int = 0, limit: int = 100):
+def get_posts(db: Session, skip: int = 0, limit: int = 10):
     return db.query(models.Post).order_by(models.Post.created_at.desc()).offset(skip).limit(limit).all()
 
 def get_post(db: Session, post_id: int):
     """単一の投稿を取得する"""
     return db.query(models.Post).filter(models.Post.id == post_id).first()
 
-def get_posts_by_tags_and(db: Session, tag_names: List[str], skip: int = 0, limit: int = 100):
+def get_posts_by_tags_and(db: Session, tag_names: List[str], skip: int = 0, limit: int = 10):
     query = db.query(models.Post)
     for name in tag_names:
         query = query.filter(models.Post.tags.any(models.Tag.name == name))

@@ -1,33 +1,55 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Post, Tag } from '../types';
 import { getPosts, getTags } from '../api';
 import TweetCard from '../components/TweetCard';
 import { useSearchParams } from 'react-router-dom';
 
+const PAGE_LIMIT = 10;
+
 function PostListPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [allTags, setAllTags] = useState<Tag[]>([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [isAccordionOpen, setIsAccordionOpen] = useState<boolean>(false);
+  const [isAccordionOpen, setIsAccordionOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const selectedTags = searchParams.get('tags') ? searchParams.get('tags')!.split(',') : [];
+  const loader = useRef<HTMLDivElement | null>(null);
 
-  const fetchPosts = useCallback(async (tagString?: string) => {
+  const tagsParam = searchParams.get('tags');
+  const selectedTags = tagsParam ? tagsParam.split(',') : [];
+
+  const fetchPosts = useCallback(async (currentPage: number, currentTags?: string | null) => {
+    if (loading) return;
     setLoading(true);
     setError(null);
+    
     try {
-      const fetchedPosts = await getPosts(tagString);
-      setPosts(fetchedPosts);
+      const skip = (currentPage - 1) * PAGE_LIMIT;
+      const fetchedPosts = await getPosts(currentTags || undefined, skip, PAGE_LIMIT);
+
+      if (currentPage === 1) {
+        setPosts(fetchedPosts);
+      } else {
+        setPosts(prev => [...prev, ...fetchedPosts]);
+      }
+
+      if (fetchedPosts.length < PAGE_LIMIT) {
+        setHasMore(false);
+      } else {
+        setHasMore(true);
+      }
     } catch (err) {
       setError('Failed to fetch posts.');
       console.error(err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loading]);
 
+  // タグ取得 (初回のみ)
   useEffect(() => {
     const fetchAllTags = async () => {
       try {
@@ -40,11 +62,48 @@ function PostListPage() {
     fetchAllTags();
   }, []);
 
-  const tagsParam = searchParams.get('tags');
-
+  // スクロール監視
   useEffect(() => {
-    fetchPosts(tagsParam || undefined);
-  }, [tagsParam, fetchPosts]);
+    const handleObserver = (entities: IntersectionObserverEntry[]) => {
+      const target = entities[0];
+      if (target.isIntersecting && !loading && hasMore) {
+        setPage(prev => prev + 1);
+      }
+    };
+
+    const observer = new IntersectionObserver(handleObserver, {
+      root: null,
+      rootMargin: "20px",
+      threshold: 1.0
+    });
+
+    if (loader.current) {
+      observer.observe(loader.current);
+    }
+
+    return () => {
+      if (loader.current) {
+        observer.unobserve(loader.current);
+      }
+    };
+  }, [loading, hasMore]);
+
+
+  // ページ変更時に追加データをフェッチ
+  useEffect(() => {
+    if (page > 1) {
+      fetchPosts(page, tagsParam);
+    }
+  }, [page]);
+
+
+  // 検索条件変更時にリセットして初回データをフェッチ
+  useEffect(() => {
+    setPosts([]);
+    setPage(1);
+    setHasMore(true);
+    fetchPosts(1, tagsParam);
+  }, [tagsParam]);
 
   const toggleTag = (tagName: string) => {
     let newTags: string[];
@@ -54,11 +113,8 @@ function PostListPage() {
       newTags = [...selectedTags, tagName];
     }
 
-    if (newTags.length > 0) {
-      setSearchParams({ tags: newTags.join(',') });
-    } else {
-      setSearchParams({});
-    }
+    const newParams = newTags.length > 0 ? { tags: newTags.join(',') } : {};
+    setSearchParams(newParams);
   };
 
   return (
@@ -102,16 +158,21 @@ function PostListPage() {
           <button onClick={() => setSearchParams({})} className="clear-tags-button">Clear All</button>
         </div>
       )}
+      
+      {error && <p className="error-message">{error}</p>}
 
-      {loading ? <p>Loading posts...</p> : (
-        error ? <p className="error-message">{error}</p> : (
-            <div className="post-list-grid">
-            {posts.map(post => (
-                <TweetCard key={post.id} post={post} />
-            ))}
-            </div>
-        )
-      )}
+      <div className="post-list-grid">
+      {posts.map(post => (
+          <TweetCard key={post.id} post={post} />
+      ))}
+      </div>
+
+      {/* ローディングインジケータ */}
+      <div ref={loader} style={{ height: '50px', margin: '20px' }}>
+        {loading && <p>Loading more posts...</p>}
+        {!loading && !hasMore && posts.length > 0 && <p>これ以上投稿はありません。</p>}
+      </div>
+
     </div>
   );
 }

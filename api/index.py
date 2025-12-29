@@ -82,7 +82,7 @@ def read_posts(
     folder_id: Optional[int] = None,
     tag_names: Optional[str] = None,  # tag_name から tag_names (複数形) に変更
     skip: int = 0,
-    limit: int = 100,
+    limit: int = 10,
     db: Session = Depends(get_db)
 ):
     # 複数タグのAND検索ロジック
