@@ -41,7 +41,7 @@ class PostBase(BaseModel):
     author_avatar_url: Optional[str] = None
     posted_at: Optional[datetime] = None
     media_urls: Optional[List[str]] = None # List[str]に変更
-    favorite_count: int = 0
+    favorite_count: Optional[int] = 0
 
 class PostCreate(PostBase):
     tags: Optional[List[str]] = [] # Accept a list of tag names during creation
