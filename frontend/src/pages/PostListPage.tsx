@@ -113,7 +113,7 @@ function PostListPage() {
       newTags = [...selectedTags, tagName];
     }
 
-    const newParams = newTags.length > 0 ? { tags: newTags.join(',') } : {};
+    const newParams = newTags.length > 0 ? { tags: newTags.join(',') } : new URLSearchParams();
     setSearchParams(newParams);
   };
 
