@@ -40,10 +40,11 @@ function PostListPage() {
     fetchAllTags();
   }, []);
 
+  const tagsParam = searchParams.get('tags');
+
   useEffect(() => {
-    const tagsParam = searchParams.get('tags');
     fetchPosts(tagsParam || undefined);
-  }, [searchParams, fetchPosts]);
+  }, [tagsParam, fetchPosts]);
 
   const toggleTag = (tagName: string) => {
     let newTags: string[];
