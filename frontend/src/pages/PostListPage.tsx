@@ -31,6 +31,7 @@ function PostListPage() {
     
     try {
       const skip = (currentPage - 1) * PAGE_LIMIT;
+      // @ts-ignore
       const fetchedPosts = await getPosts(currentTags || undefined, skip, PAGE_LIMIT, currentSortOrder);
 
       if (currentPage === 1) {
