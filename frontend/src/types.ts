@@ -25,7 +25,7 @@ export interface Post {
   author_screen_name?: string | null;
   author_avatar_url?: string | null;
   posted_at?: string | null; // ISO形式の文字列として受け取る
-  media_urls?: string | null; // カンマ区切りの文字列
+  media_urls?: string[] | null; // URLの配列
   favorite_count?: number; // FastAPI側でdefault=0にしているので、ここではOptional
   embed_html?: string | null;
 }

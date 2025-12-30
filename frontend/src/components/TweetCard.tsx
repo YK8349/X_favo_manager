@@ -30,15 +30,24 @@ interface TweetCardProps {
   post: Post;
   pageContext?: string; // 追加
   onCardClick?: (postId: number, url: string) => void; // 追加
+  onTagClick?: (tagName: string) => void;
 }
 
-const TweetCard: React.FC<TweetCardProps> = ({ post }) => {
+const TweetCard: React.FC<TweetCardProps> = ({ post, onTagClick }) => {
   // media_urls が配列であることを明示的に判定
   const mediaUrls = Array.isArray(post.media_urls) ? post.media_urls : [];
   const hasMedia = mediaUrls.length > 0;
   const mediaCount = mediaUrls.length;
 
   const imageGridClass = `image-grid image-grid-${Math.min(mediaCount, 4)}`;
+
+  const handleTagClick = (e: React.MouseEvent, tagName: string) => {
+    if (onTagClick) {
+      e.preventDefault();
+      e.stopPropagation();
+      onTagClick(tagName);
+    }
+  };
 
   return (
     <Link to={`/posts/${post.id}`} className="tweet-card-link">
@@ -62,24 +71,43 @@ const TweetCard: React.FC<TweetCardProps> = ({ post }) => {
           <p className="tweet-text-unavailable">Tweet text not available.</p>
         )}
 
-        {hasMedia && (
+        {hasMedia ? (
           <div className={imageGridClass}>
             {mediaUrls.map((url: string, index: number) => (
               <div key={index} className="image-container">
                 <a href={url} target="_blank" rel="noopener noreferrer" onClick={stopPropagation}>
-                  <img src={url} alt={`Tweet media ${index + 1}`} className="tweet-image" />
+                  <img 
+                    src={url} 
+                    alt={`Tweet media ${index + 1}`} 
+                    className="tweet-image" 
+                    style={mediaCount === 1 ? { objectFit: 'contain', backgroundColor: '#f0f2f5' } : {}}
+                  />
                 </a>
               </div>
             ))}
           </div>
+        ) : (
+          post.embed_html && (
+            <div 
+              className="tweet-embed-container"
+              style={{ margin: '1rem 0' }}
+              dangerouslySetInnerHTML={{ __html: post.embed_html }}
+            />
+          )
         )}
 
         <div className="tweet-footer">
             <time className="tweet-date">{formatDate(post.posted_at)}</time>
             <div className="tweet-tags">
-              {/* post.tags が undefined の場合を考慮 */}
               {(post.tags || []).map(tag => (
-                <span key={tag.id} className="tweet-tag" onClick={stopPropagation}>{tag.name}</span>
+                <span 
+                  key={tag.id} 
+                  className="tweet-tag"
+                  style={onTagClick ? { cursor: 'pointer' } : {}}
+                  onClick={(e) => handleTagClick(e, tag.name)}
+                >
+                  {tag.name}
+                </span>
               ))}
             </div>
         </div>

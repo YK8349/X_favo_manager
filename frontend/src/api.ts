@@ -14,8 +14,8 @@ const apiClient = axios.create({
  * 投稿を取得する (AND検索対応)
  * @param tagNames カンマ区切りのタグ名文字列 (例: "javascript,react")
  */
-export const getPosts = async (tagNames?: string, skip: number = 0, limit: number = 10): Promise<Post[]> => {
-  const params: { tag_names?: string, skip: number, limit: number } = { skip, limit }; 
+export const getPosts = async (tagNames?: string, skip: number = 0, limit: number = 10, sortOrder: 'asc' | 'desc' = 'desc'): Promise<Post[]> => {
+  const params: { tag_names?: string, skip: number, limit: number, sort_order: 'asc' | 'desc' } = { skip, limit, sort_order: sortOrder }; 
   
   if (tagNames) {
     params.tag_names = tagNames;
