@@ -134,6 +134,7 @@ def create_tag(db: Session, tag: schemas.TagCreate):
 
 def get_posts(db: Session, skip: int = 0, limit: int = 10, sort_order: str = 'desc'):
     """投稿を複数取得する（ソート対応）"""
+    query = db.query(models.Post)
     if sort_order == 'asc':
         query = query.order_by(models.Post.posted_at.asc().nullslast())
     else:
@@ -146,6 +147,7 @@ def get_post(db: Session, post_id: int):
 
 def get_posts_by_folder(db: Session, folder_id: int, skip: int = 0, limit: int = 10, sort_order: str = 'desc'):
     """フォルダIDで投稿を絞り込み、ソートして取得する"""
+    query = db.query(models.Post).filter(models.Post.folder_id == folder_id)
     if sort_order == 'asc':
         query = query.order_by(models.Post.posted_at.asc().nullslast())
     else:
