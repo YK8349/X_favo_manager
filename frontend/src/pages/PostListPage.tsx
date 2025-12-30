@@ -31,12 +31,7 @@ function PostListPage() {
     
     try {
       const skip = (currentPage - 1) * PAGE_LIMIT;
-      const fetchedPosts = await getPosts({ 
-        tagNames: currentTags || undefined, 
-        skip, 
-        limit: PAGE_LIMIT, 
-        sortOrder: currentSortOrder 
-      });
+      const fetchedPosts = await getPosts(currentTags || undefined, skip, PAGE_LIMIT, currentSortOrder);
 
       if (currentPage === 1) {
         setPosts(fetchedPosts);
@@ -185,7 +180,12 @@ function PostListPage() {
 
       <div className="post-list-grid">
         {posts.map(post => (
-          <TweetCard key={post.id} post={post} onTagClick={toggleTag} />
+          <TweetCard 
+            key={post.id} 
+            post={post} 
+            // @ts-ignore
+            onTagClick={toggleTag} 
+          />
         ))}
       </div>
 
