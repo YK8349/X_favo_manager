@@ -18,18 +18,25 @@ function PostListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const loader = useRef<HTMLDivElement | null>(null);
+  const loadingRef = useRef(false);
 
   const tagsParam = searchParams.get('tags');
   const selectedTags = tagsParam ? tagsParam.split(',') : [];
 
   const fetchPosts = useCallback(async (currentPage: number, currentTags?: string | null, currentSortOrder?: 'asc' | 'desc') => {
-    if (loading) return;
+    if (loadingRef.current) return;
+    loadingRef.current = true;
     setLoading(true);
     setError(null);
     
     try {
       const skip = (currentPage - 1) * PAGE_LIMIT;
-      const fetchedPosts = await getPosts(currentTags || undefined, skip, PAGE_LIMIT, currentSortOrder);
+      const fetchedPosts = await getPosts({ 
+        tagNames: currentTags || undefined, 
+        skip, 
+        limit: PAGE_LIMIT, 
+        sortOrder: currentSortOrder 
+      });
 
       if (currentPage === 1) {
         setPosts(fetchedPosts);
@@ -50,9 +57,10 @@ function PostListPage() {
       setError('Failed to fetch posts.');
       console.error(err);
     } finally {
+      loadingRef.current = false;
       setLoading(false);
     }
-  }, [loading]);
+  }, []);
 
   // タグ取得 (初回のみ)
   useEffect(() => {
@@ -105,7 +113,7 @@ function PostListPage() {
     setPage(1);
     setHasMore(true);
     fetchPosts(1, tagsParam, sortOrder);
-  }, [tagsParam, sortOrder]);
+  }, [tagsParam, sortOrder, fetchPosts]);
 
   const toggleTag = (tagName: string) => {
     let newTags: string[];
@@ -115,7 +123,7 @@ function PostListPage() {
       newTags = [...selectedTags, tagName];
     }
 
-    const newParams = newTags.length > 0 ? { tags: newTags.join(',') } : {};
+    const newParams: Record<string, string> = newTags.length > 0 ? { tags: newTags.join(',') } : {};
     setSearchParams(newParams);
   };
 
