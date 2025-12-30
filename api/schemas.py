@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import List, Optional
 from datetime import datetime # datetimeを追加
 
@@ -42,6 +42,11 @@ class PostBase(BaseModel):
     posted_at: Optional[datetime] = None
     media_urls: Optional[List[str]] = None # List[str]に変更
     favorite_count: Optional[int] = 0
+
+    @field_validator('favorite_count', mode='before')
+    @classmethod
+    def set_favorite_count_default(cls, v):
+        return v or 0
 
 class PostCreate(PostBase):
     tags: Optional[List[str]] = [] # Accept a list of tag names during creation
