@@ -14,6 +14,7 @@ function PostListPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isAccordionOpen, setIsAccordionOpen] = useState(false);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [searchParams, setSearchParams] = useSearchParams();
 
   const loader = useRef<HTMLDivElement | null>(null);
@@ -21,19 +22,23 @@ function PostListPage() {
   const tagsParam = searchParams.get('tags');
   const selectedTags = tagsParam ? tagsParam.split(',') : [];
 
-  const fetchPosts = useCallback(async (currentPage: number, currentTags?: string | null) => {
+  const fetchPosts = useCallback(async (currentPage: number, currentTags?: string | null, currentSortOrder?: 'asc' | 'desc') => {
     if (loading) return;
     setLoading(true);
     setError(null);
     
     try {
       const skip = (currentPage - 1) * PAGE_LIMIT;
-      const fetchedPosts = await getPosts(currentTags || undefined, skip, PAGE_LIMIT);
+      const fetchedPosts = await getPosts(currentTags || undefined, skip, PAGE_LIMIT, currentSortOrder);
 
       if (currentPage === 1) {
         setPosts(fetchedPosts);
       } else {
-        setPosts(prev => [...prev, ...fetchedPosts]);
+        setPosts(prev => {
+          const existingIds = new Set(prev.map(p => p.id));
+          const newPosts = fetchedPosts.filter(p => !existingIds.has(p.id));
+          return [...prev, ...newPosts];
+        });
       }
 
       if (fetchedPosts.length < PAGE_LIMIT) {
@@ -88,22 +93,19 @@ function PostListPage() {
     };
   }, [loading, hasMore]);
 
-
   // ページ変更時に追加データをフェッチ
   useEffect(() => {
     if (page > 1) {
-      fetchPosts(page, tagsParam);
+      fetchPosts(page, tagsParam, sortOrder);
     }
   }, [page]);
 
-
   // 検索条件変更時にリセットして初回データをフェッチ
   useEffect(() => {
-    setPosts([]);
     setPage(1);
     setHasMore(true);
-    fetchPosts(1, tagsParam);
-  }, [tagsParam]);
+    fetchPosts(1, tagsParam, sortOrder);
+  }, [tagsParam, sortOrder]);
 
   const toggleTag = (tagName: string) => {
     let newTags: string[];
@@ -113,38 +115,50 @@ function PostListPage() {
       newTags = [...selectedTags, tagName];
     }
 
-    const newParams = newTags.length > 0 ? { tags: newTags.join(',') } : new URLSearchParams();
+    const newParams = newTags.length > 0 ? { tags: newTags.join(',') } : {};
     setSearchParams(newParams);
+  };
+
+  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSortOrder(e.target.value as 'asc' | 'desc');
   };
 
   return (
     <div>
-      <h2>Multi-Tag Search (AND)</h2>
-      
-      <div className="tag-filter-accordion">
-        <button 
-          onClick={() => setIsAccordionOpen(!isAccordionOpen)}
-          className="tag-filter-button"
-        >
-          {isAccordionOpen ? '▼ タグフィルタを閉じる' : '▶ タグで絞り込む (複数選択可)'}
-        </button>
-        
-        {isAccordionOpen && (
-          <div className="tag-selection-area">
-            {allTags.map(tag => {
-              const isSelected = selectedTags.includes(tag.name);
-              return (
-                <button
-                  key={tag.id}
-                  onClick={() => toggleTag(tag.name)}
-                  className={`tag-button ${isSelected ? 'selected' : ''}`}
-                >
-                  {isSelected ? '✓ ' : '+ '} {tag.name}
-                </button>
-              );
-            })}
-          </div>
-        )}
+      <div className="filter-controls">
+        <div className="tag-filter-accordion">
+          <button 
+            onClick={() => setIsAccordionOpen(!isAccordionOpen)}
+            className="tag-filter-button"
+          >
+            {isAccordionOpen ? '▼ タグフィルタを閉じる' : '▶ タグで絞り込む (複数選択可)'}
+          </button>
+          
+          {isAccordionOpen && (
+            <div className="tag-selection-area">
+              {allTags.map(tag => {
+                const isSelected = selectedTags.includes(tag.name);
+                return (
+                  <button
+                    key={tag.id}
+                    onClick={() => toggleTag(tag.name)}
+                    className={`tag-button ${isSelected ? 'selected' : ''}`}
+                  >
+                    {isSelected ? '✓ ' : '+ '} {tag.name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="sort-options">
+          <label htmlFor="sort-order">表示順:</label>
+          <select id="sort-order" value={sortOrder} onChange={handleSortChange}>
+            <option value="desc">新しい順</option>
+            <option value="asc">古い順</option>
+          </select>
+        </div>
       </div>
 
       {selectedTags.length > 0 && (
@@ -162,17 +176,15 @@ function PostListPage() {
       {error && <p className="error-message">{error}</p>}
 
       <div className="post-list-grid">
-      {posts.map(post => (
-          <TweetCard key={post.id} post={post} />
-      ))}
+        {posts.map(post => (
+          <TweetCard key={post.id} post={post} onTagClick={toggleTag} />
+        ))}
       </div>
 
-      {/* ローディングインジケータ */}
       <div ref={loader} style={{ height: '50px', margin: '20px' }}>
         {loading && <p>Loading more posts...</p>}
         {!loading && !hasMore && posts.length > 0 && <p>これ以上投稿はありません。</p>}
       </div>
-
     </div>
   );
 }

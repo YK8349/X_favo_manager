@@ -80,24 +80,24 @@ def create_post(post: schemas.PostCreate, db: Session = Depends(get_db)):
 @app.get("/api/posts/", response_model=List[schemas.Post])
 def read_posts(
     folder_id: Optional[int] = None,
-    tag_names: Optional[str] = None,  # tag_name から tag_names (複数形) に変更
+    tag_names: Optional[str] = None,
     skip: int = 0,
     limit: int = 10,
+    sort_order: str = 'desc', # ソート順を追加
     db: Session = Depends(get_db)
 ):
     # 複数タグのAND検索ロジック
     if tag_names:
-        # カンマ区切りの文字列をリストに変換
         tag_list = [t.strip() for t in tag_names.split(",") if t.strip()]
         if tag_list:
-            return crud.get_posts_by_tags_and(db, tag_list, skip=skip, limit=limit)
+            return crud.get_posts_by_tags_and(db, tag_list, skip=skip, limit=limit, sort_order=sort_order)
 
     # 既存のフォルダフィルタリング
     if folder_id is not None:
-        return crud.get_posts_by_folder(db, folder_id=folder_id, skip=skip, limit=limit)
+        return crud.get_posts_by_folder(db, folder_id=folder_id, skip=skip, limit=limit, sort_order=sort_order)
     
     # フィルタなし
-    return crud.get_posts(db, skip=skip, limit=limit)
+    return crud.get_posts(db, skip=skip, limit=limit, sort_order=sort_order)
 
 @app.get("/api/posts/{post_id}", response_model=schemas.Post)
 def read_post(post_id: int, db: Session = Depends(get_db)):

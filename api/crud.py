@@ -132,18 +132,40 @@ def create_tag(db: Session, tag: schemas.TagCreate):
     return db_tag
 # --- Post CRUD ---
 
-def get_posts(db: Session, skip: int = 0, limit: int = 10):
-    return db.query(models.Post).order_by(models.Post.created_at.desc()).offset(skip).limit(limit).all()
+def get_posts(db: Session, skip: int = 0, limit: int = 10, sort_order: str = 'desc'):
+    """投稿を複数取得する（ソート対応）"""
+    query = db.query(models.Post)
+    if sort_order == 'asc':
+        query = query.order_by(models.Post.created_at.asc())
+    else:
+        query = query.order_by(models.Post.created_at.desc())
+    return query.offset(skip).limit(limit).all()
 
 def get_post(db: Session, post_id: int):
     """単一の投稿を取得する"""
     return db.query(models.Post).filter(models.Post.id == post_id).first()
 
-def get_posts_by_tags_and(db: Session, tag_names: List[str], skip: int = 0, limit: int = 10):
+def get_posts_by_folder(db: Session, folder_id: int, skip: int = 0, limit: int = 10, sort_order: str = 'desc'):
+    """フォルダIDで投稿を絞り込み、ソートして取得する"""
+    query = db.query(models.Post).filter(models.Post.folder_id == folder_id)
+    if sort_order == 'asc':
+        query = query.order_by(models.Post.created_at.asc())
+    else:
+        query = query.order_by(models.Post.created_at.desc())
+    return query.offset(skip).limit(limit).all()
+
+def get_posts_by_tags_and(db: Session, tag_names: List[str], skip: int = 0, limit: int = 10, sort_order: str = 'desc'):
+    """複数のタグ（AND検索）で投稿を絞り込み、ソートして取得する"""
     query = db.query(models.Post)
     for name in tag_names:
         query = query.filter(models.Post.tags.any(models.Tag.name == name))
-    return query.order_by(models.Post.created_at.desc()).offset(skip).limit(limit).all()
+    
+    if sort_order == 'asc':
+        query = query.order_by(models.Post.created_at.asc())
+    else:
+        query = query.order_by(models.Post.created_at.desc())
+        
+    return query.offset(skip).limit(limit).all()
 
 def create_post(db: Session, post: schemas.PostCreate):
     tweet_id = extract_tweet_id_from_url(post.url)
